@@ -1,2 +1,2 @@
-# cooking-ai
-WebService Cooking AI
+# SpotR-bdd
+Micro Service BDD SpotR
