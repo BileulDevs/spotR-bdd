@@ -1,7 +1,10 @@
 const express = require('express');
-const { getMetrics } = require('../controllers/metrics.controller');
+const metricsController = require('../controllers/metrics.controller');
 const router = express.Router();
 
-router.get('/', getMetrics);
+router.get('/', metricsController.getMetrics);
+router.get('/errors', metricsController.getErrors);
+router.get('/warnings', metricsController.getWarnings);
+
 
 module.exports = router;
