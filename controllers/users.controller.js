@@ -1,29 +1,7 @@
 const cryptPassword = require('../helpers/cryptPassword');
-const generateToken = require('../helpers/generateToken');
 const logger = require("../config/logger");
 const User = require('../models/user');
 
-const returnUser = (user) => {
-    const userObject = user.toObject();
-    delete userObject.password;
-    return userObject;
-};
-
-// Create User
-exports.createUser = async (req, res) => {
-    try {
-        const { username, email, password } = req.body;
-        const hashedPassword = await cryptPassword(password);
-        const user = new User({ username, email, password: hashedPassword });
-        await user.save();
-
-        logger.info(`User created: ${user._id}`);
-        res.status(201).json(returnUser(user));
-    } catch (error) {
-        logger.error(`Error creating user: ${error.message}`);
-        res.status(400).json({ message: error.message });
-    }
-};
 
 // Get All Users
 exports.getUsers = async (req, res) => {
