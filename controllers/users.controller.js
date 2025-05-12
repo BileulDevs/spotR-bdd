@@ -29,11 +29,11 @@ exports.createUser = async (req, res) => {
         logger.info(`User created: ${user._id}`);
         res.status(201).json(user);
 
-        } catch (error) {
-            logger.error(`Error creating user: ${error.message}`);
-            res.status(400).json({ message: error.message });
-        }
-    };
+    } catch (error) {
+        logger.error(`Error creating user: ${error.message}`);
+        res.status(400).json({ message: error.message });
+    }
+};
   
 
 // Get All Users
@@ -108,5 +108,16 @@ exports.deleteUser = async (req, res) => {
     } catch (error) {
         logger.error(`Error deleting user: ${error.message}`);
         res.status(500).json({ message: error.message });
+    }
+};
+
+exports.verifyEmail = async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(req.params.id, { isEmailVerified: true });
+        logger.info(`Email vérifié pour id : ${req.params.id}`)
+        res.status(200).send({ message: 'Email vérifié.' });
+    } catch (err) {
+        logger.error(`Erreur lors de la vérification de l'email pour id : ${req.params.id}`)
+        res.status(500).send({ message: `Error : ${err.message}`})
     }
 };
