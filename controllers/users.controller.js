@@ -60,7 +60,7 @@ exports.getUserById = async (req, res) => {
         }
 
         logger.info(`Fetched user: ${user._id}`);
-        res.json(returnUser(user));
+        res.json(user);
     } catch (error) {
         logger.error(`Error fetching user: ${error.message}`);
         res.status(500).json({ message: error.message });
@@ -72,6 +72,7 @@ exports.updateUser = async (req, res) => {
     try {
         const { username, email, password } = req.body;
         const updateFields = { username, email };
+        console.log(updateFields)
         if (password) {
             updateFields.password = await cryptPassword(password);
         }
@@ -87,7 +88,7 @@ exports.updateUser = async (req, res) => {
         }
 
         logger.info(`Updated user: ${user._id}`);
-        res.json(returnUser(user));
+        res.json(user);
     } catch (error) {
         logger.error(`Error updating user: ${error.message}`);
         res.status(400).json({ message: error.message });

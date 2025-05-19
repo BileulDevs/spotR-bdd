@@ -16,7 +16,7 @@ const init = async () => {
 
         app.use(express.json());
         app.use(cors({
-            origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+            origin: "*",
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization']
         }));
