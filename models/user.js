@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   },
   isAdmin: { type: Boolean, required: true, default: false},
   isEmailVerified: { type: Boolean, required: true, default: false},
+  emailVerifiedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 userSchema.set('toJSON', {
@@ -23,4 +24,5 @@ userSchema.set('toJSON', {
   }
 });
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+module.exports = User;
