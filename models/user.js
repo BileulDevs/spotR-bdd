@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
   },
   isAdmin: { type: Boolean, required: true, default: false},
   isEmailVerified: { type: Boolean, required: true, default: false},
-  emailVerifiedAt: { type: Date, default: null }
+  emailVerifiedAt: { type: Date, default: null },
+  avatar: { type: String, default: null}
 }, { timestamps: true });
 
 userSchema.set('toJSON', {

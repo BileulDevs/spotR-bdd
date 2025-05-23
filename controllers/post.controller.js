@@ -4,6 +4,7 @@ const Post = require('../models/post');
 exports.createPost = async (req, res) => {
   try {
     const post = new Post(req.body);
+    post.user = req.user.id;
     const saved = await post.save();
     res.status(201).json(saved);
   } catch (err) {
@@ -56,3 +57,35 @@ exports.deletePost = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Like a post
+exports.likePost = async (req, res) => {
+  try {
+      const post = await Post.findById(req.params.id);
+      const userId = req.body.hasLiked;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'ID manquant pour like' });
+      }
+
+      if (!post) {
+        return res.status(404).json({ error: 'Post non trouvé' });
+      }
+
+      const index = post.whoLiked.indexOf(userId);
+
+      if (index !== -1) {
+        post.whoLiked.splice(index, 1);
+        post.likes = post.likes > 0 ? post.likes - 1 : 0;
+      } else {
+        post.whoLiked.push(userId);
+        post.likes = (post.likes || 0) + 1;
+      }
+
+      await post.save();
+
+      res.status(200).json({ message: 'Like mis à jour avec succès', likes: post.likes, whoLiked: post.whoLiked });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
