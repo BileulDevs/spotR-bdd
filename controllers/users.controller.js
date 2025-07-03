@@ -1,6 +1,7 @@
 const cryptPassword = require('../helpers/cryptPassword');
 const logger = require("../config/logger");
 const User = require('../models/user');
+const Post = require("../models/post");
 
 // Create User
 exports.createUser = async (req, res) => {
@@ -122,3 +123,15 @@ exports.verifyEmail = async (req, res) => {
         res.status(500).send({ message: `Error : ${err.message}`})
     }
 };
+
+exports.getUserPosts = async (req, res) => {
+    try {
+        const userPosts = await Post.find({ user: req.params.id}).populate("user");
+
+        res.status(200).json({posts: userPosts});
+
+    } catch (err) {
+        logger.error(`Erreur lors de la récupération des posts pour : ${req.params.id}`)
+        res.status(500).send({ message: `Error : ${err.message}`})
+    }
+}
