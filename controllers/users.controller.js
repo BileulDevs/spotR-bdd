@@ -1,4 +1,5 @@
 const cryptPassword = require('../helpers/cryptPassword');
+const comparePassword = require('../helpers/comparePassword');
 const logger = require("../config/logger");
 const User = require('../models/user');
 const Post = require("../models/post");
@@ -71,10 +72,41 @@ exports.getUserById = async (req, res) => {
 // Update User
 exports.updateUser = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, confirmPassword, currentPassword } = req.body;
         const updateFields = { username, email };
-        console.log(updateFields)
+
+        // Si un nouveau mot de passe est fourni
         if (password) {
+            // Vérifier que le mot de passe actuel est fourni
+            if (!currentPassword) {
+                return res.status(400).json({ 
+                    message: 'Le mot de passe actuel est requis pour modifier le mot de passe' 
+                });
+            }
+
+            // Vérifier que les nouveaux mots de passe correspondent
+            if (password !== confirmPassword) {
+                return res.status(400).json({ 
+                    message: 'Les mots de passe ne correspondent pas' 
+                });
+            }
+
+            // Récupérer l'utilisateur pour vérifier le mot de passe actuel
+            const existingUser = await User.findById(req.params.id);
+            if (!existingUser) {
+                logger.warn(`User not found for update: ${req.params.id}`);
+                return res.status(404).json({ message: 'Utilisateur non trouvé' });
+            }
+
+            // Vérifier le mot de passe actuel
+            const isCurrentPasswordValid = await comparePassword(currentPassword, existingUser.password);
+            if (!isCurrentPasswordValid) {
+                return res.status(400).json({ 
+                    message: 'Le mot de passe actuel est incorrect' 
+                });
+            }
+
+            // Crypter le nouveau mot de passe
             updateFields.password = await cryptPassword(password);
         }
 
@@ -83,13 +115,19 @@ exports.updateUser = async (req, res) => {
             updateFields,
             { new: true }
         );
+
         if (!user) {
             logger.warn(`User not found for update: ${req.params.id}`);
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
         logger.info(`Updated user: ${user._id}`);
-        res.json(user);
+        
+        // Retourner l'utilisateur sans le mot de passe
+        const userResponse = user.toObject();
+        delete userResponse.password;
+        
+        res.json(userResponse);
     } catch (error) {
         logger.error(`Error updating user: ${error.message}`);
         res.status(400).json({ message: error.message });
