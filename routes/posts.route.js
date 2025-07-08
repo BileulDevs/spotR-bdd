@@ -4,6 +4,7 @@ const postController = require('../controllers/post.controller');
 const authenticate = require("../helpers/authenticate");
 
 router.post('/', authenticate, postController.createPost);
+router.get('/feed', postController.getFeed);
 router.get('/', postController.getAllPosts);
 router.get('/:id', postController.getPostById);
 router.put('/:id', postController.updatePost);

@@ -12,10 +12,19 @@ exports.createPost = async (req, res) => {
   }
 };
 
+exports.getFeed = async (req, res) => {
+  try {
+    const posts = await Post.find({isDeactivated: false}).where().populate('user');
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // Get all posts
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find().populate('user'); // .populate('user') si tu veux inclure les infos utilisateur
+    const posts = await Post.find().where().populate('user');
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });
