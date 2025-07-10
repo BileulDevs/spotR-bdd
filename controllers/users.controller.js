@@ -7,7 +7,6 @@ const Post = require("../models/post");
 // Create User
 exports.createUser = async (req, res) => {
     try {
-
         const { username, email, password, provider } = req.body;
 
         let hashedPassword = undefined;
@@ -28,20 +27,21 @@ exports.createUser = async (req, res) => {
 
         await user.save();
 
+        const populatedUser = await User.findById(user._id).populate("subscription");
+
         logger.info(`User created: ${user._id}`);
-        res.status(201).json(user);
+        res.status(201).json(populatedUser);
 
     } catch (error) {
         logger.error(`Error creating user: ${error.message}`);
         res.status(400).json({ message: error.message });
     }
 };
-  
 
 // Get All Users
 exports.getUsers = async (req, res) => {
     try {
-        const users = await User.find();
+        const users = await User.find().populate("subscription");
         const sanitizedUsers = users.map(user => user);
 
         logger.info(`Fetched ${sanitizedUsers.length} users.`);
@@ -55,7 +55,7 @@ exports.getUsers = async (req, res) => {
 // Get One User
 exports.getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id);
+        const user = await User.findById(req.params.id).populate("subscription");
         if (!user) {
             logger.warn(`User not found: ${req.params.id}`);
             return res.status(404).json({ message: 'User not found' });
@@ -75,38 +75,26 @@ exports.updateUser = async (req, res) => {
         const { username, email, password, confirmPassword, currentPassword } = req.body;
         const updateFields = { username, email };
 
-        // Si un nouveau mot de passe est fourni
         if (password) {
-            // Vérifier que le mot de passe actuel est fourni
             if (!currentPassword) {
-                return res.status(400).json({ 
-                    message: 'Le mot de passe actuel est requis pour modifier le mot de passe' 
-                });
+                return res.status(400).json({ message: 'Le mot de passe actuel est requis pour modifier le mot de passe' });
             }
 
-            // Vérifier que les nouveaux mots de passe correspondent
             if (password !== confirmPassword) {
-                return res.status(400).json({ 
-                    message: 'Les mots de passe ne correspondent pas' 
-                });
+                return res.status(400).json({ message: 'Les mots de passe ne correspondent pas' });
             }
 
-            // Récupérer l'utilisateur pour vérifier le mot de passe actuel
             const existingUser = await User.findById(req.params.id);
             if (!existingUser) {
                 logger.warn(`User not found for update: ${req.params.id}`);
                 return res.status(404).json({ message: 'Utilisateur non trouvé' });
             }
 
-            // Vérifier le mot de passe actuel
             const isCurrentPasswordValid = await comparePassword(currentPassword, existingUser.password);
             if (!isCurrentPasswordValid) {
-                return res.status(400).json({ 
-                    message: 'Le mot de passe actuel est incorrect' 
-                });
+                return res.status(400).json({ message: 'Le mot de passe actuel est incorrect' });
             }
 
-            // Crypter le nouveau mot de passe
             updateFields.password = await cryptPassword(password);
         }
 
@@ -114,7 +102,7 @@ exports.updateUser = async (req, res) => {
             req.params.id,
             updateFields,
             { new: true }
-        );
+        ).populate("subscription");
 
         if (!user) {
             logger.warn(`User not found for update: ${req.params.id}`);
@@ -122,11 +110,9 @@ exports.updateUser = async (req, res) => {
         }
 
         logger.info(`Updated user: ${user._id}`);
-        
-        // Retourner l'utilisateur sans le mot de passe
         const userResponse = user.toObject();
         delete userResponse.password;
-        
+
         res.json(userResponse);
     } catch (error) {
         logger.error(`Error updating user: ${error.message}`);
@@ -151,6 +137,7 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
+// Verify Email
 exports.verifyEmail = async (req, res) => {
     try {
         await User.findByIdAndUpdate(req.params.id, { isEmailVerified: true });
@@ -162,14 +149,13 @@ exports.verifyEmail = async (req, res) => {
     }
 };
 
+// Get User's Posts
 exports.getUserPosts = async (req, res) => {
     try {
-        const userPosts = await Post.find({ user: req.params.id}).populate("user");
-
-        res.status(200).json({posts: userPosts});
-
+        const userPosts = await Post.find({ user: req.params.id }).populate("user");
+        res.status(200).json({ posts: userPosts });
     } catch (err) {
         logger.error(`Erreur lors de la récupération des posts pour : ${req.params.id}`)
-        res.status(500).send({ message: `Error : ${err.message}`})
+        res.status(500).send({ message: `Error : ${err.message}` })
     }
-}
+};
