@@ -7,7 +7,7 @@ exports.getAllSubscriptions = async (req, res) => {
   try {
     const subscriptions = await Subscription.find()
       .populate('userId', 'name email')
-      .populate('premiumId', 'title tarif description');
+      .populate('premium', 'title tarif description');
     res.status(200).json(subscriptions);
   } catch (error) {
     res.status(500).json({
@@ -23,7 +23,7 @@ exports.getSubscriptionById = async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id)
       .populate('userId', 'name email')
-      .populate('premiumId', 'title tarif description');
+      .populate('premium', 'title tarif description');
     
     if (!subscription) {
       return res.status(404).json({
@@ -46,7 +46,7 @@ exports.getSubscriptionById = async (req, res) => {
 exports.getSubscriptionsByUser = async (req, res) => {
   try {
     const subscriptions = await Subscription.find({ userId: req.params.userId })
-      .populate('premiumId', 'title tarif description')
+      .populate('premium', 'title tarif description')
       .sort({ createdAt: -1 });
     
     res.status(200).json(subscriptions);
@@ -67,7 +67,7 @@ exports.getActiveSubscriptionsByUser = async (req, res) => {
       status: 'active',
       endDate: { $gt: new Date() }
     })
-      .populate('premiumId', 'title tarif description')
+      .populate('premium', 'title tarif description')
       .sort({ createdAt: -1 });
     
     res.status(200).json(subscriptions);
@@ -85,7 +85,7 @@ exports.createSubscription = async (req, res) => {
   try {
     const { userId, premiumId, duration = 30 } = req.body;
     
-    // Vérifier si le premium existe
+    // Vérifier si le Id existe
     const premium = await Premium.findById(premiumId);
     if (!premium) {
       return res.status(404).json({
@@ -101,6 +101,7 @@ exports.createSubscription = async (req, res) => {
     
     const subscriptionData = {
       ...req.body,
+      premium,
       startDate,
       endDate,
       amount: premium.tarif
@@ -110,11 +111,11 @@ exports.createSubscription = async (req, res) => {
     const savedSubscription = await subscription.save();
     
     // Incrémenter le compteur de subscriptions du premium
-    await Premium.findByIdAndUpdate(premiumId, { $inc: { subCount: 1 } });
+    await Premium.findByIdAndUpdate(premium, { $inc: { subCount: 1 } });
     
     const populatedSubscription = await Subscription.findById(savedSubscription._id)
       .populate('userId', 'name email')
-      .populate('premiumId', 'title tarif description');
+      .populate('premium', 'title tarif description');
     
     res.status(201).json(populatedSubscription);
   } catch (error) {
@@ -138,7 +139,7 @@ exports.updateSubscription = async (req, res) => {
       }
     )
     .populate('userId', 'name email')
-    .populate('premiumId', 'title tarif description');
+    .populate('premium', 'title tarif description');
     
     if (!subscription) {
       return res.status(404).json({
@@ -170,7 +171,7 @@ exports.patchSubscription = async (req, res) => {
       }
     )
     .populate('userId', 'name email')
-    .populate('premiumId', 'title tarif description');
+    .populate('premium', 'title tarif description');
     
     if (!subscription) {
       return res.status(404).json({
@@ -205,7 +206,7 @@ exports.cancelSubscription = async (req, res) => {
       }
     )
     .populate('userId', 'name email')
-    .populate('premiumId', 'title tarif description');
+    .populate('premium', 'title tarif description');
     
     if (!subscription) {
       return res.status(404).json({
@@ -258,7 +259,7 @@ exports.renewSubscription = async (req, res) => {
       }
     )
     .populate('userId', 'name email')
-    .populate('premiumId', 'title tarif description');
+    .populate('premium', 'title tarif description');
     
     res.status(200).json({
       success: true,
@@ -288,7 +289,7 @@ exports.deleteSubscription = async (req, res) => {
     }
     
     // Décrémenter le compteur de subscriptions du premium
-    await Premium.findByIdAndUpdate(subscription.premiumId, { $inc: { subCount: -1 } });
+    await Premium.findByIdAndUpdate(subscription.premium, { $inc: { subCount: -1 } });
     
     res.status(200).json({
       success: true,
@@ -313,7 +314,7 @@ exports.searchSubscriptions = async (req, res) => {
       limit = 10, 
       status, 
       userId, 
-      premiumId,
+      premium,
       startDate,
       endDate,
       ...filters 
@@ -324,7 +325,7 @@ exports.searchSubscriptions = async (req, res) => {
     
     if (status) searchFilters.status = status;
     if (userId) searchFilters.userId = userId;
-    if (premiumId) searchFilters.premiumId = premiumId;
+    if (premium) searchFilters.premium = premium;
     
     if (startDate || endDate) {
       searchFilters.createdAt = {};
@@ -338,13 +339,13 @@ exports.searchSubscriptions = async (req, res) => {
       sort: { createdAt: -1 },
       populate: [
         { path: 'userId', select: 'name email' },
-        { path: 'premiumId', select: 'title tarif description' }
+        { path: 'premium', select: 'title tarif description' }
       ]
     };
     
     const subscriptions = await Subscription.find(searchFilters)
       .populate('userId', 'name email')
-      .populate('premiumId', 'title tarif description')
+      .populate('premium', 'title tarif description')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));

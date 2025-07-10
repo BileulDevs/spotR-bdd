@@ -7,7 +7,7 @@ const subscriptionSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
-  premiumId: { 
+  premium: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Premium', 
     required: true 
@@ -47,8 +47,17 @@ const subscriptionSchema = new mongoose.Schema({
 
 // Index pour optimiser les requêtes
 subscriptionSchema.index({ userId: 1, status: 1 });
-subscriptionSchema.index({ premiumId: 1 });
+subscriptionSchema.index({ premium: 1 });
 subscriptionSchema.index({ endDate: 1 });
+
+// MIDDLEWARE POUR AUTO-POPULATION
+subscriptionSchema.pre(/^find/, function(next) {
+  this.populate({
+    path: 'premium',
+    select: '-__v' // Exclure __v du Premium
+  });
+  next();
+});
 
 // Méthode pour vérifier si la subscription est active
 subscriptionSchema.methods.isActive = function() {
