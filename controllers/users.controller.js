@@ -9,6 +9,12 @@ exports.createUser = async (req, res) => {
     try {
         const { username, email, password, provider } = req.body;
 
+        // Vérification unicité du username
+        const existingUsername = await User.findOne({ username });
+        if (existingUsername) {
+            return res.status(400).json({ message: "Nom d'utilisateur déjà utilisé" });
+        }
+
         let hashedPassword = undefined;
 
         if (provider === 'local') {
@@ -73,7 +79,26 @@ exports.getUserById = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { username, email, password, confirmPassword, currentPassword } = req.body;
-        const updateFields = { username, email };
+        const updateFields = {};
+
+        const existingUser = await User.findById(req.params.id);
+        if (!existingUser) {
+            logger.warn(`User not found for update: ${req.params.id}`);
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        // Vérifie si le username a changé et s'il est unique
+        if (username && username !== existingUser.username) {
+            const usernameTaken = await User.findOne({ username });
+            if (usernameTaken) {
+                return res.status(400).json({ message: "Nom d'utilisateur déjà utilisé" });
+            }
+            updateFields.username = username;
+        }
+
+        if (email) {
+            updateFields.email = email;
+        }
 
         if (password) {
             if (!currentPassword) {
@@ -82,12 +107,6 @@ exports.updateUser = async (req, res) => {
 
             if (password !== confirmPassword) {
                 return res.status(400).json({ message: 'Les mots de passe ne correspondent pas' });
-            }
-
-            const existingUser = await User.findById(req.params.id);
-            if (!existingUser) {
-                logger.warn(`User not found for update: ${req.params.id}`);
-                return res.status(404).json({ message: 'Utilisateur non trouvé' });
             }
 
             const isCurrentPasswordValid = await comparePassword(currentPassword, existingUser.password);
@@ -103,11 +122,6 @@ exports.updateUser = async (req, res) => {
             updateFields,
             { new: true }
         ).populate("subscription");
-
-        if (!user) {
-            logger.warn(`User not found for update: ${req.params.id}`);
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
 
         logger.info(`Updated user: ${user._id}`);
         const userResponse = user.toObject();
