@@ -81,6 +81,7 @@ subscriptionSchema.pre('save', function(next) {
 
 subscriptionSchema.post('save', async function(doc, next) {
   try {
+    const User = mongoose.model('User');
     await User.findByIdAndUpdate(doc.userId, {
       subscription: doc._id
     });
