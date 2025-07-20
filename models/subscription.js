@@ -54,7 +54,7 @@ subscriptionSchema.index({ endDate: 1 });
 subscriptionSchema.pre(/^find/, function(next) {
   this.populate({
     path: 'premium',
-    select: '-__v' // Exclure __v du Premium
+    select: '-__v'
   });
   next();
 });
@@ -79,12 +79,63 @@ subscriptionSchema.pre('save', function(next) {
   next();
 });
 
+// NOUVEAU: Middleware pour mettre à jour le subCount du Premium
 subscriptionSchema.post('save', async function(doc, next) {
   try {
     const User = mongoose.model('User');
+    const Premium = mongoose.model('Premium');
+    
+    // Mettre à jour l'utilisateur avec la subscription
     await User.findByIdAndUpdate(doc.userId, {
       subscription: doc._id
     });
+    
+    // Mettre à jour le subCount du Premium
+    await Premium.updateSubCount(doc.premium);
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// NOUVEAU: Middleware pour mettre à jour le subCount après modification
+subscriptionSchema.post('findOneAndUpdate', async function(doc, next) {
+  try {
+    if (doc && doc.premium) {
+      const Premium = mongoose.model('Premium');
+      await Premium.updateSubCount(doc.premium);
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// NOUVEAU: Middleware pour mettre à jour le subCount après suppression
+subscriptionSchema.post('findOneAndDelete', async function(doc, next) {
+  try {
+    if (doc && doc.premium) {
+      const Premium = mongoose.model('Premium');
+      await Premium.updateSubCount(doc.premium);
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// NOUVEAU: Middleware pour mettre à jour le subCount après suppression multiple
+subscriptionSchema.post('deleteMany', async function(result, next) {
+  try {
+    // Récupérer tous les Premium uniques et recalculer leur subCount
+    const Premium = mongoose.model('Premium');
+    const premiums = await Premium.find({});
+    
+    for (const premium of premiums) {
+      await Premium.updateSubCount(premium._id);
+    }
+    
     next();
   } catch (error) {
     next(error);
