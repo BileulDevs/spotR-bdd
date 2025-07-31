@@ -51,7 +51,7 @@ router.post('/', authenticate, postController.createPost);
  *       200:
  *         description: Liste des posts du feed
  */
-router.get('/feed', postController.getFeed);
+router.get('/feed', authenticate, postController.getFeed);
 
 /**
  * @swagger

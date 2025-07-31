@@ -109,7 +109,12 @@ exports.getFeed = async (req, res) => {
     // Générer le feed personnalisé
     const personalizedPosts = await generatePersonalizedFeed(userId, userProfile);
     
-    res.json(personalizedPosts);
+    // Trier les posts par date de création (plus récent en premier)
+    const sortedPosts = personalizedPosts.sort((a, b) => {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    res.json(sortedPosts);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -189,6 +194,37 @@ async function getUserProfile(userId) {
   }
 }
 
+// Fonction pour récupérer des posts aléatoires
+async function getRandomPosts(userId, limit = 50) {
+  try {
+    const posts = await Post.aggregate([
+      { 
+        $match: { 
+          isDeactivated: false,
+          user: { $ne: userId }
+        }
+      },
+      { $sample: { size: limit } }
+    ]);
+
+    // Populer les utilisateurs pour les posts aléatoires
+    const populatedPosts = await Post.populate(posts, { path: 'user' });
+    
+    // Trier par date de création (plus récent en premier)
+    return populatedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } catch (error) {
+    console.error('Erreur lors de la récupération des posts aléatoires:', error);
+    // Fallback sur une récupération normale si l'agrégation échoue
+    return await Post.find({ 
+      isDeactivated: false,
+      user: { $ne: userId }
+    })
+    .populate('user')
+    .sort({ createdAt: -1 })
+    .limit(limit);
+  }
+}
+
 // Fonction pour générer le feed personnalisé
 async function generatePersonalizedFeed(userId, userProfile) {
   try {
@@ -196,6 +232,12 @@ async function generatePersonalizedFeed(userId, userProfile) {
       isDeactivated: false,
       user: { $ne: userId } // Exclure ses propres posts
     }).populate('user');
+
+    // Si aucun post n'est disponible, retourner des posts aléatoires
+    if (posts.length === 0) {
+      console.log('Aucun post disponible, récupération de posts aléatoires');
+      return await getRandomPosts(userId);
+    }
 
     // Calculer un score pour chaque post
     const scoredPosts = posts.map(post => {
@@ -228,7 +270,7 @@ async function generatePersonalizedFeed(userId, userProfile) {
     });
 
     // Trier par score de pertinence et retourner les meilleurs résultats
-    const sortedPosts = scoredPosts
+    let sortedPosts = scoredPosts
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .slice(0, 50); // Limiter à 50 posts
 
@@ -252,7 +294,13 @@ async function generatePersonalizedFeed(userId, userProfile) {
         }, [])
         .slice(0, 50);
 
-      return mixedPosts;
+      sortedPosts = mixedPosts;
+    }
+
+    // Vérifier si le feed personnalisé est vide
+    if (sortedPosts.length === 0) {
+      console.log('Feed personnalisé vide, récupération de posts aléatoires');
+      return await getRandomPosts(userId);
     }
 
     // Retirer le score de pertinence avant d'envoyer la réponse
@@ -263,10 +311,8 @@ async function generatePersonalizedFeed(userId, userProfile) {
 
   } catch (error) {
     console.error('Erreur lors de la génération du feed personnalisé:', error);
-    // En cas d'erreur, retourner un feed par défaut
-    return await Post.find({ isDeactivated: false })
-      .populate('user')
-      .sort({ createdAt: -1 })
-      .limit(50);
+    // En cas d'erreur, retourner des posts aléatoires
+    console.log('Erreur dans generatePersonalizedFeed, récupération de posts aléatoires');
+    return await getRandomPosts(userId);
   }
 }
