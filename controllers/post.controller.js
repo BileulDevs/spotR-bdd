@@ -92,30 +92,36 @@ exports.likePost = async (req, res) => {
 
 exports.getFeed = async (req, res) => {
   try {
-    const userId = req.user?.id; // Supposant que l'utilisateur est authentifié
+    const userId = req.user?.id;
+    const { offset = 0, limit = 50 } = req.query;
+    
+    // Convertir en nombres
+    const offsetNum = parseInt(offset, 10);
+    const limitNum = Math.min(parseInt(limit, 10), 100); // Limite max de 100
     
     if (!userId) {
-      // Si pas d'utilisateur connecté, retourner un feed général
+      // Si pas d'utilisateur connecté, retourner un feed général paginé
       const posts = await Post.find({ isDeactivated: false })
         .populate('user')
         .sort({ createdAt: -1 })
-        .limit(50);
-      return res.json(posts);
+        .skip(offsetNum)
+        .limit(limitNum);
+      
+      const transformedPosts = posts.map(post => post.toJSON());
+      return res.json(transformedPosts);
     }
 
-    // Récupérer le profil utilisateur basé sur ses posts et likes
     const userProfile = await getUserProfile(userId);
+    const personalizedPosts = await generatePersonalizedFeed(userId, userProfile, offsetNum, limitNum);
     
-    // Générer le feed personnalisé
-    const personalizedPosts = await generatePersonalizedFeed(userId, userProfile);
-    
-    // Trier les posts par date de création (plus récent en premier)
+    // Trier par date de création (plus récent en premier)
     const sortedPosts = personalizedPosts.sort((a, b) => {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-    
+
     res.json(sortedPosts);
   } catch (err) {
+    console.error('Erreur dans getFeed:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -123,31 +129,38 @@ exports.getFeed = async (req, res) => {
 // Fonction pour analyser le profil utilisateur
 async function getUserProfile(userId) {
   try {
-    // Récupérer les posts de l'utilisateur pour analyser ses préférences
+    // Récupérer sans .lean() pour pouvoir utiliser toJSON()
     const userPosts = await Post.find({ 
       user: userId, 
       isDeactivated: false 
     });
 
-    // Récupérer les posts que l'utilisateur a likés
     const likedPosts = await Post.find({ 
       whoLiked: userId, 
       isDeactivated: false 
     });
 
+    // Convertir en objets JSON avec id au lieu de _id
+    const userPostsJSON = userPosts.map(post => post.toJSON());
+    const likedPostsJSON = likedPosts.map(post => post.toJSON());
+
     // Analyser les tags des posts de l'utilisateur
-    const userTags = userPosts.reduce((tags, post) => {
-      post.tags.forEach(tag => {
-        tags[tag] = (tags[tag] || 0) + 2; // Pondération plus forte pour ses propres posts
-      });
+    const userTags = userPostsJSON.reduce((tags, post) => {
+      if (post.tags) {
+        post.tags.forEach(tag => {
+          tags[tag] = (tags[tag] || 0) + 2;
+        });
+      }
       return tags;
     }, {});
 
     // Analyser les tags des posts likés
-    const likedTags = likedPosts.reduce((tags, post) => {
-      post.tags.forEach(tag => {
-        tags[tag] = (tags[tag] || 0) + 1; // Pondération normale pour les likes
-      });
+    const likedTags = likedPostsJSON.reduce((tags, post) => {
+      if (post.tags) {
+        post.tags.forEach(tag => {
+          tags[tag] = (tags[tag] || 0) + 1;
+        });
+      }
       return tags;
     }, {});
 
@@ -158,13 +171,17 @@ async function getUserProfile(userId) {
     });
 
     // Analyser les marques préférées
-    const userBrands = userPosts.reduce((brands, post) => {
-      brands[post.brand] = (brands[post.brand] || 0) + 2;
+    const userBrands = userPostsJSON.reduce((brands, post) => {
+      if (post.brand) {
+        brands[post.brand] = (brands[post.brand] || 0) + 2;
+      }
       return brands;
     }, {});
 
-    const likedBrands = likedPosts.reduce((brands, post) => {
-      brands[post.brand] = (brands[post.brand] || 0) + 1;
+    const likedBrands = likedPostsJSON.reduce((brands, post) => {
+      if (post.brand) {
+        brands[post.brand] = (brands[post.brand] || 0) + 1;
+      }
       return brands;
     }, {});
 
@@ -178,8 +195,8 @@ async function getUserProfile(userId) {
       tagScores: allTags,
       preferredBrands: Object.keys(allBrands).sort((a, b) => allBrands[b] - allBrands[a]),
       brandScores: allBrands,
-      totalUserPosts: userPosts.length,
-      totalLikedPosts: likedPosts.length
+      totalUserPosts: userPostsJSON.length,
+      totalLikedPosts: likedPostsJSON.length
     };
   } catch (error) {
     console.error('Erreur lors de l\'analyse du profil utilisateur:', error);
@@ -194,125 +211,167 @@ async function getUserProfile(userId) {
   }
 }
 
-// Fonction pour récupérer des posts aléatoires
-async function getRandomPosts(userId, limit = 50) {
+// Fonction pour récupérer des posts aléatoires avec pagination
+async function getRandomPosts(userId, limit = 50, offset = 0) {
   try {
     const posts = await Post.aggregate([
       { 
         $match: { 
           isDeactivated: false,
-          user: { $ne: userId }
+          user: { $ne: new mongoose.Types.ObjectId(userId) }
         }
       },
-      { $sample: { size: limit } }
+      { $sort: { createdAt: -1 } }, // Trier avant de paginer
+      { $skip: offset },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: '$user'
+      },
+      // Transformation pour remplacer _id par id
+      {
+        $addFields: {
+          id: '$_id',
+          'user.id': '$user._id'
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          '__v': 0,
+          'user._id': 0,
+          'user.__v': 0
+        }
+      }
     ]);
 
-    // Populer les utilisateurs pour les posts aléatoires
-    const populatedPosts = await Post.populate(posts, { path: 'user' });
-    
-    // Trier par date de création (plus récent en premier)
-    return populatedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return posts;
   } catch (error) {
     console.error('Erreur lors de la récupération des posts aléatoires:', error);
-    // Fallback sur une récupération normale si l'agrégation échoue
-    return await Post.find({ 
+    // Fallback sans aggregation
+    const posts = await Post.find({ 
       isDeactivated: false,
       user: { $ne: userId }
     })
     .populate('user')
     .sort({ createdAt: -1 })
+    .skip(offset)
     .limit(limit);
+    
+    return posts.map(post => post.toJSON());
   }
 }
 
-// Fonction pour générer le feed personnalisé
-async function generatePersonalizedFeed(userId, userProfile) {
+// Fonction pour générer le feed personnalisé avec pagination
+async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit = 50) {
   try {
+    // Pour la personnalisation, on récupère plus de posts puis on pagine après scoring
+    const totalPostsToAnalyze = Math.max(200, offset + limit * 2); // Au moins 200 posts pour un bon scoring
+    
     const posts = await Post.find({ 
       isDeactivated: false,
-      user: { $ne: userId } // Exclure ses propres posts
-    }).populate('user');
+      user: { $ne: userId }
+    })
+    .populate('user')
+    .sort({ createdAt: -1 }) // Pré-trier par date
+    .limit(totalPostsToAnalyze);
 
-    // Si aucun post n'est disponible, retourner des posts aléatoires
     if (posts.length === 0) {
       console.log('Aucun post disponible, récupération de posts aléatoires');
-      return await getRandomPosts(userId);
+      return await getRandomPosts(userId, limit, offset);
     }
 
+    // Convertir en objets JSON avec la transformation id
+    const postsJSON = posts.map(post => post.toJSON());
+
     // Calculer un score pour chaque post
-    const scoredPosts = posts.map(post => {
+    const scoredPosts = postsJSON.map(post => {
       let score = 0;
 
       // Score basé sur les tags
-      post.tags.forEach(tag => {
-        if (userProfile.tagScores[tag]) {
-          score += userProfile.tagScores[tag] * 0.4; // 40% du score basé sur les tags
-        }
-      });
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach(tag => {
+          if (userProfile.tagScores[tag]) {
+            score += userProfile.tagScores[tag] * 0.4;
+          }
+        });
+      }
 
       // Score basé sur la marque
-      if (userProfile.brandScores[post.brand]) {
-        score += userProfile.brandScores[post.brand] * 0.3; // 30% du score basé sur la marque
+      if (post.brand && userProfile.brandScores[post.brand]) {
+        score += userProfile.brandScores[post.brand] * 0.3;
       }
 
       // Score basé sur la popularité (likes)
-      score += Math.log(post.likes + 1) * 0.2; // 20% basé sur les likes (log pour éviter la domination des posts très populaires)
+      const likes = post.likes || 0;
+      score += Math.log(likes + 1) * 0.2;
 
       // Score basé sur la récence
       const daysSinceCreation = (Date.now() - new Date(post.createdAt)) / (1000 * 60 * 60 * 24);
-      const recencyScore = Math.max(0, 7 - daysSinceCreation) / 7; // Score diminue après 7 jours
-      score += recencyScore * 0.1; // 10% basé sur la récence
+      const recencyScore = Math.max(0, 7 - daysSinceCreation) / 7;
+      score += recencyScore * 0.1;
 
       return {
-        ...post.toObject(),
+        ...post,
         relevanceScore: score
       };
     });
 
-    // Trier par score de pertinence et retourner les meilleurs résultats
+    // Trier par score de pertinence puis paginer
     let sortedPosts = scoredPosts
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .slice(0, 50); // Limiter à 50 posts
+      .slice(offset, offset + limit);
 
-    // Si l'utilisateur a peu d'historique, mélanger avec des posts populaires récents
-    if (userProfile.totalUserPosts < 3 && userProfile.totalLikedPosts < 5) {
-      const popularPosts = await Post.find({ 
+    // Si l'utilisateur a peu d'historique et qu'on est sur la première page,
+    // mélanger avec des posts populaires récents
+    if (offset === 0 && userProfile.totalUserPosts < 3 && userProfile.totalLikedPosts < 5) {
+      const popularPostsDoc = await Post.find({ 
         isDeactivated: false,
         user: { $ne: userId }
       })
       .populate('user')
       .sort({ likes: -1, createdAt: -1 })
-      .limit(25);
+      .limit(Math.floor(limit / 2));
 
-      // Mélanger les posts personnalisés avec les posts populaires
-      const mixedPosts = [...sortedPosts.slice(0, 25), ...popularPosts]
+      const popularPosts = popularPostsDoc.map(post => post.toJSON());
+
+      // Mélanger les posts (50% personnalisés, 50% populaires)
+      const halfLimit = Math.floor(limit / 2);
+      const mixedPosts = [
+        ...sortedPosts.slice(0, halfLimit), 
+        ...popularPosts
+      ]
         .reduce((unique, post) => {
           if (!unique.find(p => p.id === post.id)) {
             unique.push(post);
           }
           return unique;
         }, [])
-        .slice(0, 50);
+        .slice(0, limit);
 
       sortedPosts = mixedPosts;
     }
 
-    // Vérifier si le feed personnalisé est vide
     if (sortedPosts.length === 0) {
       console.log('Feed personnalisé vide, récupération de posts aléatoires');
-      return await getRandomPosts(userId);
+      return await getRandomPosts(userId, limit, offset);
     }
 
-    // Retirer le score de pertinence avant d'envoyer la réponse
+    // Nettoyer les scores de pertinence
     return sortedPosts.map(post => {
-      const { relevanceScore, ...postWithoutScore } = post;
-      return postWithoutScore;
+      const { relevanceScore, ...cleanPost } = post;
+      return cleanPost;
     });
 
   } catch (error) {
     console.error('Erreur lors de la génération du feed personnalisé:', error);
-    // En cas d'erreur, retourner des posts aléatoires
-    console.log('Erreur dans generatePersonalizedFeed, récupération de posts aléatoires');
-    return await getRandomPosts(userId);
+    return await getRandomPosts(userId, limit, offset);
   }
 }
