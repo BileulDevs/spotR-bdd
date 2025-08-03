@@ -75,10 +75,36 @@ exports.getUserById = async (req, res) => {
     }
 };
 
+// Update Password
+exports.updateUserPassword = async (req, res) => {
+    try {
+        const { password } = req.body;
+
+        const existingUser = await User.findById(req.params.id);
+        if (!existingUser) {
+            logger.warn(`User not found for update: ${req.params.id}`);
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { password: password },
+            { new: true }
+        ).populate("subscription");
+
+        logger.info(`Updated user password: ${user._id}`);
+
+        res.status(200).send({ success: true, message: "Mot de passe mis à jour avec succès"})
+    } catch (error) {
+        logger.error(`Error updating user: ${error.message}`);
+        res.status(400).json({ message: error.message });
+    }
+};
+
 // Update User
 exports.updateUser = async (req, res) => {
     try {
-        const { username, email, password, confirmPassword, currentPassword } = req.body;
+        const { username, password, avatar, isAdmin, isEmailVerified, confirmPassword, currentPassword } = req.body;
         const updateFields = {};
 
         const existingUser = await User.findById(req.params.id);
@@ -87,7 +113,7 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Vérifie si le username a changé et s'il est unique
+        // Vérifie le changement de username
         if (username && username !== existingUser.username) {
             const usernameTaken = await User.findOne({ username });
             if (usernameTaken) {
@@ -96,13 +122,10 @@ exports.updateUser = async (req, res) => {
             updateFields.username = username;
         }
 
-        if (email) {
-            updateFields.email = email;
-        }
-
-        if (password) {
-            if (!currentPassword) {
-                return res.status(400).json({ message: 'Le mot de passe actuel est requis pour modifier le mot de passe' });
+        // Gestion du mot de passe
+        if (password || confirmPassword || currentPassword) {
+            if (!password || !confirmPassword || !currentPassword) {
+                return res.status(400).json({ message: 'Tous les champs de mot de passe sont requis' });
             }
 
             if (password !== confirmPassword) {
@@ -115,6 +138,29 @@ exports.updateUser = async (req, res) => {
             }
 
             updateFields.password = await cryptPassword(password);
+        }
+
+        if (avatar !== undefined) {
+            updateFields.avatar = avatar;
+        }
+
+        if (isAdmin !== undefined && req.user.isAdmin) {
+            updateFields.isAdmin = isAdmin;
+        }
+
+        if (isEmailVerified !== undefined && isEmailVerified !== existingUser.isEmailVerified) {
+            updateFields.isEmailVerified = isEmailVerified;
+
+            if (isEmailVerified === true && !existingUser.isEmailVerified) {
+                updateFields.emailVerifiedAt = new Date();
+            } else if (isEmailVerified === false) {
+                updateFields.emailVerifiedAt = null;
+            }
+        }
+
+        // Mise à jour uniquement si des champs à modifier
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ message: 'Aucun champ à mettre à jour' });
         }
 
         const user = await User.findByIdAndUpdate(
@@ -133,6 +179,7 @@ exports.updateUser = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
 
 // Delete User
 exports.deleteUser = async (req, res) => {

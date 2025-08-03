@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const usersController = require('../controllers/users.controller');
+const authenticate = require('../middlewares/authenticate');
+const resetPassword = require('../middlewares/resetPassword');
 
 /**
  * @swagger
@@ -121,7 +123,9 @@ router.delete('/:id', usersController.deleteUser);
  *       200:
  *         description: Utilisateur mis à jour
  */
-router.put('/:id', usersController.updateUser);
+router.put('/:id', authenticate, usersController.updateUser);
+
+router.put('/:id/password', resetPassword, usersController.updateUserPassword);
 
 /**
  * @swagger
