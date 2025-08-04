@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const usersController = require('../controllers/users.controller');
 const authenticate = require('../middlewares/authenticate');
+const isAuthorized = require('../middlewares/isAuthorized');
 const resetPassword = require('../middlewares/resetPassword');
 
 /**
@@ -123,7 +124,7 @@ router.delete('/:id', usersController.deleteUser);
  *       200:
  *         description: Utilisateur mis à jour
  */
-router.put('/:id', authenticate, usersController.updateUser);
+router.put('/:id', isAuthorized, usersController.updateUser);
 
 router.put('/:id/password', resetPassword, usersController.updateUserPassword);
 
