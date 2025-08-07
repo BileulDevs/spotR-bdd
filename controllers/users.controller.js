@@ -75,6 +75,23 @@ exports.getUserById = async (req, res) => {
     }
 };
 
+exports.getUserByUsername = async (req, res) => {
+    try {
+        const user = await User.findOne({ username: req.params.username }).populate("subscription");
+        if (!user) {
+            logger.warn(`User not found: ${req.params.username}`);
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        logger.info(`Fetched user: ${user.username}`);
+        res.json(user);
+    } catch (error) {
+        logger.error(`Error fetching user: ${error.message}`);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
 // Update Password
 exports.updateUserPassword = async (req, res) => {
     try {
