@@ -3,9 +3,10 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const router = require("./routes/index");
 const logger = require("./config/logger.js");
-require("dotenv").config();
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+require("dotenv").config();
+require('./cron/updateSubscriptions');
 
 const app = express();
 
