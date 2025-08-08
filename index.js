@@ -7,6 +7,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 require("dotenv").config();
 require('./cron/updateSubscriptions');
+require('./cron/updateSubcount.js');
 
 const app = express();
 

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const User = require('./user');
 
 const subscriptionSchema = new mongoose.Schema({
   userId: { 
@@ -50,12 +49,12 @@ const subscriptionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index pour optimiser les requêtes
+/** 🔍 Index pour optimiser les requêtes */
 subscriptionSchema.index({ userId: 1, status: 1 });
 subscriptionSchema.index({ premium: 1 });
 subscriptionSchema.index({ endDate: 1 });
 
-// MIDDLEWARE POUR AUTO-POPULATION
+/** 🔄 Auto-population du champ premium */
 subscriptionSchema.pre(/^find/, function(next) {
   this.populate({
     path: 'premium',
@@ -64,19 +63,19 @@ subscriptionSchema.pre(/^find/, function(next) {
   next();
 });
 
-// Méthode pour vérifier si la subscription est active
+/** ✅ Méthode pour vérifier si la subscription est active */
 subscriptionSchema.methods.isActive = function() {
   return this.status === 'active' && this.endDate > new Date();
 };
 
-// Méthode pour calculer les jours restants
+/** 📅 Méthode pour calculer les jours restants */
 subscriptionSchema.methods.getDaysRemaining = function() {
   if (this.endDate <= new Date()) return 0;
   const diffTime = this.endDate - new Date();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
-// Middleware pour mettre à jour le statut automatiquement
+/** ⏳ Middleware pour mettre à jour automatiquement le statut */
 subscriptionSchema.pre('save', function(next) {
   if (this.endDate <= new Date() && this.status === 'active') {
     this.status = 'expired';
@@ -84,69 +83,7 @@ subscriptionSchema.pre('save', function(next) {
   next();
 });
 
-// NOUVEAU: Middleware pour mettre à jour le subCount du Premium
-subscriptionSchema.post('save', async function(doc, next) {
-  try {
-    const User = mongoose.model('User');
-    const Premium = mongoose.model('Premium');
-    
-    // Mettre à jour l'utilisateur avec la subscription
-    await User.findByIdAndUpdate(doc.userId, {
-      subscription: doc._id
-    });
-    
-    // Mettre à jour le subCount du Premium
-    await Premium.updateSubCount(doc.premium);
-    
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// NOUVEAU: Middleware pour mettre à jour le subCount après modification
-subscriptionSchema.post('findOneAndUpdate', async function(doc, next) {
-  try {
-    if (doc && doc.premium) {
-      const Premium = mongoose.model('Premium');
-      await Premium.updateSubCount(doc.premium);
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// NOUVEAU: Middleware pour mettre à jour le subCount après suppression
-subscriptionSchema.post('findOneAndDelete', async function(doc, next) {
-  try {
-    if (doc && doc.premium) {
-      const Premium = mongoose.model('Premium');
-      await Premium.updateSubCount(doc.premium);
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// NOUVEAU: Middleware pour mettre à jour le subCount après suppression multiple
-subscriptionSchema.post('deleteMany', async function(result, next) {
-  try {
-    // Récupérer tous les Premium uniques et recalculer leur subCount
-    const Premium = mongoose.model('Premium');
-    const premiums = await Premium.find({});
-    
-    for (const premium of premiums) {
-      await Premium.updateSubCount(premium._id);
-    }
-    
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
+/** 🌐 Transformation JSON */
 subscriptionSchema.set('toJSON', {
   transform: (doc, ret) => {
     ret.id = ret._id;

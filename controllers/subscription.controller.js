@@ -1,6 +1,7 @@
 const logger = require("../config/logger");
 const Subscription = require('../models/subscription');
 const Premium = require('../models/premium');
+const User = require('../models/user');
 
 // GET - Récupérer toutes les subscriptions
 exports.getAllSubscriptions = async (req, res) => {
@@ -84,7 +85,6 @@ exports.getActiveSubscriptionsByUser = async (req, res) => {
 exports.createSubscription = async (req, res) => {
   try {
     const { userId, premiumId, duration = 30 } = req.body;
-    
     // Vérifier si le Id existe
     const premium = await Premium.findById(premiumId);
     if (!premium) {
@@ -107,9 +107,13 @@ exports.createSubscription = async (req, res) => {
       amount: premium.tarif
     };
     
+
     const subscription = new Subscription(subscriptionData);
     const savedSubscription = await subscription.save();
     
+    logger.info(`Creating sub : ${savedSubscription._id}`)
+
+    await User.findByIdAndUpdate(userId, { subscription: savedSubscription });
     await Premium.findByIdAndUpdate(premium, { $inc: { subCount: 1 } });
     
     const populatedSubscription = await Subscription.findById(savedSubscription._id)
@@ -118,6 +122,7 @@ exports.createSubscription = async (req, res) => {
     
     res.status(201).json(populatedSubscription);
   } catch (error) {
+    logger.error("error creating sub", error)
     res.status(400).json({
       success: false,
       message: 'Erreur lors de la création de la subscription',
