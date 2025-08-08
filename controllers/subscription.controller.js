@@ -110,7 +110,6 @@ exports.createSubscription = async (req, res) => {
     const subscription = new Subscription(subscriptionData);
     const savedSubscription = await subscription.save();
     
-    // Incrémenter le compteur de subscriptions du premium
     await Premium.findByIdAndUpdate(premium, { $inc: { subCount: 1 } });
     
     const populatedSubscription = await Subscription.findById(savedSubscription._id)
