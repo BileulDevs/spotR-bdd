@@ -23,13 +23,11 @@ cron.schedule('0 * * * *', async () => {
 
       if (result.modifiedCount > 0) {
         updated++;
-        console.log(`[CRON] ${premium.title} mis à jour : ${count} abonnés actifs.`);
       }
     }
 
-    logger.info(`[CRON] ${updated} premium(s) mis à jour avec leur subCount.`);
+    logger.cron(`[CRON] ${updated} premium(s) mis à jour avec leur subCount.`);
   } catch (err) {
-    logger.error('[CRON] Erreur lors de la mise à jour des subCount :', err);
-    console.error('[CRON] Erreur lors de la mise à jour des subCount :', err);
+    logger.cron('[CRON] Erreur lors de la mise à jour des subCount :', err);
   }
 });

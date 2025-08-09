@@ -11,7 +11,12 @@ const logger = winston.createLogger({
         new winston.transports.File({ filename: './storage/warnings.log', level: 'warn' }),
         new winston.transports.File({ filename: './storage/errors.log', level: 'error' }),
         new winston.transports.File({ filename: './storage/metrics.log' }),
+        new winston.transports.File({ filename: './storage/cron.log' })
     ]
 });
+
+logger.cron = (message, meta = {}) => {
+    logger.info(message, { ...meta, type: 'cron' });
+};
 
 module.exports = logger;

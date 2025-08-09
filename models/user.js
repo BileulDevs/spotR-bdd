@@ -33,54 +33,64 @@ userSchema.set('toJSON', {
   }
 });
 
-// Middleware pour supprimer tous les posts de l'utilisateur avant sa suppression
+
+// Middleware pour deleteOne avec document = true
 userSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
   try {
-    // Supprimer tous les posts de cet utilisateur
+    // Supprimer les Posts de l'utilisateur
     await Post.deleteMany({ user: this._id });
-    //await Subscription.deleteMany({ userId: this._id });
     console.log(`Posts supprimés pour l'utilisateur ${this.username}`);
+    
+    // Supprimer les Subscriptions de l'utilisateur
+    await Subscription.deleteMany({ userId: this._id });
+    console.log(`Subscriptions supprimées pour l'utilisateur ${this.username}`);
+    
     next();
   } catch (error) {
-    console.error('Erreur lors de la suppression des posts:', error);
+    console.error('Erreur lors de la suppression des données liées:', error);
     next(error);
   }
 });
 
-// Middleware pour les suppressions via query (findOneAndDelete, etc.)
+// Middleware pour findOneAndDelete
 userSchema.pre('findOneAndDelete', async function(next) {
   try {
-    // Récupérer l'utilisateur qui va être supprimé
     const user = await this.model.findOne(this.getQuery());
     if (user) {
-      // Supprimer tous les posts de cet utilisateur
+      // Supprimer les Posts de l'utilisateur
       await Post.deleteMany({ user: user._id });
-      //await Subscription.deleteMany({ userId: this._id });
       console.log(`Posts supprimés pour l'utilisateur ${user.username}`);
+      
+      // Supprimer les Subscriptions de l'utilisateur
+      await Subscription.deleteMany({ userId: user._id });
+      console.log(`Subscriptions supprimées pour l'utilisateur ${user.username}`);
     }
     next();
   } catch (error) {
-    console.error('Erreur lors de la suppression des posts:', error);
+    console.error('Erreur lors de la suppression des données liées:', error);
     next(error);
   }
 });
 
-// Middleware pour les suppressions multiples (optionnel)
+// Middleware pour deleteMany (si vous supprimez plusieurs utilisateurs)
 userSchema.pre('deleteMany', async function(next) {
   try {
-    // Récupérer tous les utilisateurs qui vont être supprimés
     const users = await this.model.find(this.getQuery());
     const userIds = users.map(user => user._id);
     
     if (userIds.length > 0) {
-      // Supprimer tous les posts de ces utilisateurs
+      // Supprimer tous les Posts des utilisateurs
       await Post.deleteMany({ user: { $in: userIds } });
-      //await Subscription.deleteMany({ user: { $in: userIds } });
       console.log(`Posts supprimés pour ${userIds.length} utilisateurs`);
+      
+      // Supprimer toutes les Subscriptions des utilisateurs
+      await Subscription.deleteMany({ userId: { $in: userIds } });
+      console.log(`Subscriptions supprimées pour ${userIds.length} utilisateurs`);
     }
+    
     next();
   } catch (error) {
-    console.error('Erreur lors de la suppression des posts:', error);
+    console.error('Erreur lors de la suppression des données liées:', error);
     next(error);
   }
 });
