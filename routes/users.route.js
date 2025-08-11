@@ -47,7 +47,6 @@ router.get('/', usersController.getUsers);
  */
 router.get('/:id', usersController.getUserById);
 
-
 /**
  * @swagger
  * /api/users/username/{username}:

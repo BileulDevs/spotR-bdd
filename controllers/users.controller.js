@@ -146,6 +146,28 @@ exports.updateUser = async (req, res) => {
     }
 
     if (username && username !== existingUser.username) {
+      const response = await fetch(
+        `${process.env.SERVICE_IA_URL}/api/validate/validateData`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(req.body),
+        }
+      );
+
+      const validation = await response.json();
+
+      if (!validation.success) {
+        logger.warn(
+          `La validation des données a échouée lors d'une inscription`
+        );
+        return res.status(400).json({
+          message:
+            'La validation des données a échouée, veuillez vérifier vos données',
+        });
+      }
       const usernameTaken = await User.findOne({ username });
       if (usernameTaken) {
         return res

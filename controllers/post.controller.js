@@ -84,13 +84,11 @@ exports.likePost = async (req, res) => {
 
     await post.save();
 
-    res
-      .status(200)
-      .json({
-        message: 'Like mis à jour avec succès',
-        likes: post.likes,
-        whoLiked: post.whoLiked,
-      });
+    res.status(200).json({
+      message: 'Like mis à jour avec succès',
+      likes: post.likes,
+      whoLiked: post.whoLiked,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

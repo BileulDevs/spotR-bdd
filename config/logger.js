@@ -17,7 +17,10 @@ const logger = winston.createLogger({
       level: 'error',
     }),
     new winston.transports.File({ filename: './storage/metrics.log' }),
-    new winston.transports.File({ filename: './storage/cron.log' }),
+    new winston.transports.File({
+      filename: './storage/cron.log',
+      level: 'cron',
+    }),
   ],
 });
 

@@ -17,12 +17,10 @@ const isAuthorized = (req, res, next) => {
     if (req.user.id == req.params.id || req.user.isAdmin) {
       next();
     } else {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          error: 'Vous devez être propriétaire du compte ou administrateur',
-        });
+      return res.status(403).json({
+        success: false,
+        error: 'Vous devez être propriétaire du compte ou administrateur',
+      });
     }
   } catch (err) {
     return res
