@@ -47,6 +47,27 @@ router.get('/', usersController.getUsers);
  */
 router.get('/:id', usersController.getUserById);
 
+
+/**
+ * @swagger
+ * /api/users/username/{username}:
+ *   get:
+ *     tags:
+ *       - User
+ *     summary: Récupérer un utilisateur par username
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Username de l'utilisateur
+ *     responses:
+ *       200:
+ *         description: Utilisateur trouvé
+ *       404:
+ *         description: Utilisateur non trouvé
+ */
 router.get('/username/:username', usersController.getUserByUsername);
 
 /**
