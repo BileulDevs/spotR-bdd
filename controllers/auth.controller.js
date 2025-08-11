@@ -4,7 +4,7 @@ const User = require('../models/user');
 exports.checkUserForLogin = async (req, res) => {
   try {
     const { email } = req.body;
-    const userCheck = await User.findOne({ email: email });
+    const userCheck = await User.findOne({ email: email }).populate('subscription');
 
     if (!userCheck) {
       logger.info(`No user found for login with email: ${email}`);
