@@ -95,12 +95,10 @@ exports.getFeed = async (req, res) => {
     const userId = req.user?.id;
     const { offset = 0, limit = 50 } = req.query;
     
-    // Convertir en nombres
     const offsetNum = parseInt(offset, 10);
-    const limitNum = Math.min(parseInt(limit, 10), 100); // Limite max de 100
+    const limitNum = Math.min(parseInt(limit, 10), 100);
     
     if (!userId) {
-      // Si pas d'utilisateur connecté, retourner un feed général paginé
       const posts = await Post.find({ isDeactivated: false })
         .populate('user')
         .sort({ createdAt: -1 })
@@ -114,7 +112,6 @@ exports.getFeed = async (req, res) => {
     const userProfile = await getUserProfile(userId);
     const personalizedPosts = await generatePersonalizedFeed(userId, userProfile, offsetNum, limitNum);
     
-    // Trier par date de création (plus récent en premier)
     const sortedPosts = personalizedPosts.sort((a, b) => {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
@@ -129,7 +126,6 @@ exports.getFeed = async (req, res) => {
 // Fonction pour analyser le profil utilisateur
 async function getUserProfile(userId) {
   try {
-    // Récupérer sans .lean() pour pouvoir utiliser toJSON()
     const userPosts = await Post.find({ 
       user: userId, 
       isDeactivated: false 
@@ -140,11 +136,9 @@ async function getUserProfile(userId) {
       isDeactivated: false 
     });
 
-    // Convertir en objets JSON avec id au lieu de _id
     const userPostsJSON = userPosts.map(post => post.toJSON());
     const likedPostsJSON = likedPosts.map(post => post.toJSON());
 
-    // Analyser les tags des posts de l'utilisateur
     const userTags = userPostsJSON.reduce((tags, post) => {
       if (post.tags) {
         post.tags.forEach(tag => {
@@ -154,7 +148,6 @@ async function getUserProfile(userId) {
       return tags;
     }, {});
 
-    // Analyser les tags des posts likés
     const likedTags = likedPostsJSON.reduce((tags, post) => {
       if (post.tags) {
         post.tags.forEach(tag => {
@@ -164,13 +157,11 @@ async function getUserProfile(userId) {
       return tags;
     }, {});
 
-    // Combiner les tags avec leurs scores
     const allTags = { ...userTags };
     Object.keys(likedTags).forEach(tag => {
       allTags[tag] = (allTags[tag] || 0) + likedTags[tag];
     });
 
-    // Analyser les marques préférées
     const userBrands = userPostsJSON.reduce((brands, post) => {
       if (post.brand) {
         brands[post.brand] = (brands[post.brand] || 0) + 2;
@@ -221,7 +212,7 @@ async function getRandomPosts(userId, limit = 50, offset = 0) {
           user: { $ne: new mongoose.Types.ObjectId(userId) }
         }
       },
-      { $sort: { createdAt: -1 } }, // Trier avant de paginer
+      { $sort: { createdAt: -1 } },
       { $skip: offset },
       { $limit: limit },
       {
@@ -235,7 +226,6 @@ async function getRandomPosts(userId, limit = 50, offset = 0) {
       {
         $unwind: '$user'
       },
-      // Transformation pour remplacer _id par id
       {
         $addFields: {
           id: '$_id',
@@ -255,7 +245,7 @@ async function getRandomPosts(userId, limit = 50, offset = 0) {
     return posts;
   } catch (error) {
     console.error('Erreur lors de la récupération des posts aléatoires:', error);
-    // Fallback sans aggregation
+
     const posts = await Post.find({ 
       isDeactivated: false,
       user: { $ne: userId }
@@ -272,15 +262,14 @@ async function getRandomPosts(userId, limit = 50, offset = 0) {
 // Fonction pour générer le feed personnalisé avec pagination
 async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit = 50) {
   try {
-    // Pour la personnalisation, on récupère plus de posts puis on pagine après scoring
-    const totalPostsToAnalyze = Math.max(200, offset + limit * 2); // Au moins 200 posts pour un bon scoring
+    const totalPostsToAnalyze = Math.max(200, offset + limit * 2);
     
     const posts = await Post.find({ 
       isDeactivated: false,
       user: { $ne: userId }
     })
     .populate('user')
-    .sort({ createdAt: -1 }) // Pré-trier par date
+    .sort({ createdAt: -1 })
     .limit(totalPostsToAnalyze);
 
     if (posts.length === 0) {
@@ -288,14 +277,11 @@ async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit =
       return await getRandomPosts(userId, limit, offset);
     }
 
-    // Convertir en objets JSON avec la transformation id
     const postsJSON = posts.map(post => post.toJSON());
 
-    // Calculer un score pour chaque post
     const scoredPosts = postsJSON.map(post => {
       let score = 0;
 
-      // Score basé sur les tags
       if (post.tags && Array.isArray(post.tags)) {
         post.tags.forEach(tag => {
           if (userProfile.tagScores[tag]) {
@@ -304,16 +290,13 @@ async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit =
         });
       }
 
-      // Score basé sur la marque
       if (post.brand && userProfile.brandScores[post.brand]) {
         score += userProfile.brandScores[post.brand] * 0.3;
       }
 
-      // Score basé sur la popularité (likes)
       const likes = post.likes || 0;
       score += Math.log(likes + 1) * 0.2;
 
-      // Score basé sur la récence
       const daysSinceCreation = (Date.now() - new Date(post.createdAt)) / (1000 * 60 * 60 * 24);
       const recencyScore = Math.max(0, 7 - daysSinceCreation) / 7;
       score += recencyScore * 0.1;
@@ -324,13 +307,10 @@ async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit =
       };
     });
 
-    // Trier par score de pertinence puis paginer
     let sortedPosts = scoredPosts
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .slice(offset, offset + limit);
 
-    // Si l'utilisateur a peu d'historique et qu'on est sur la première page,
-    // mélanger avec des posts populaires récents
     if (offset === 0 && userProfile.totalUserPosts < 3 && userProfile.totalLikedPosts < 5) {
       const popularPostsDoc = await Post.find({ 
         isDeactivated: false,
@@ -342,7 +322,6 @@ async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit =
 
       const popularPosts = popularPostsDoc.map(post => post.toJSON());
 
-      // Mélanger les posts (50% personnalisés, 50% populaires)
       const halfLimit = Math.floor(limit / 2);
       const mixedPosts = [
         ...sortedPosts.slice(0, halfLimit), 
@@ -364,7 +343,6 @@ async function generatePersonalizedFeed(userId, userProfile, offset = 0, limit =
       return await getRandomPosts(userId, limit, offset);
     }
 
-    // Nettoyer les scores de pertinence
     return sortedPosts.map(post => {
       const { relevanceScore, ...cleanPost } = post;
       return cleanPost;

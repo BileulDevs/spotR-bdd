@@ -324,7 +324,6 @@ exports.searchSubscriptions = async (req, res) => {
       ...filters 
     } = req.query;
     
-    // Construire les filtres
     const searchFilters = { ...filters };
     
     if (status) searchFilters.status = status;

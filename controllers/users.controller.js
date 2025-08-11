@@ -9,7 +9,6 @@ exports.createUser = async (req, res) => {
     try {
         const { username, email, password, provider } = req.body;
 
-        // Vérification unicité du username
         const existingUsername = await User.findOne({ username });
         if (existingUsername) {
             return res.status(400).json({ message: "Nom d'utilisateur déjà utilisé" });
@@ -130,7 +129,6 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Vérifie le changement de username
         if (username && username !== existingUser.username) {
             const usernameTaken = await User.findOne({ username });
             if (usernameTaken) {
@@ -139,7 +137,6 @@ exports.updateUser = async (req, res) => {
             updateFields.username = username;
         }
 
-        // Gestion du mot de passe
         if (password || confirmPassword || currentPassword) {
             if (!password || !confirmPassword || !currentPassword) {
                 return res.status(400).json({ message: 'Tous les champs de mot de passe sont requis' });
@@ -175,7 +172,6 @@ exports.updateUser = async (req, res) => {
             }
         }
 
-        // Mise à jour uniquement si des champs à modifier
         if (Object.keys(updateFields).length === 0) {
             return res.status(400).json({ message: 'Aucun champ à mettre à jour' });
         }

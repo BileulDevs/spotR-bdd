@@ -135,28 +135,3 @@ exports.deletePremium = async (req, res) => {
     });
   }
 };
-
-// GET - Recherche avec pagination et filtres
-// exports.searchPremiums = async (req, res) => {
-//   try {
-//     const { page = 1, limit = 10, ...filters } = req.query;
-//     const options = {
-//       page: parseInt(page),
-//       limit: parseInt(limit),
-//       sort: { createdAt: -1 }
-//     };
-    
-//     const premiums = await Premium.paginate(filters, options);
-    
-//     res.status(200).json({
-//       success: true,
-//       data: premiums
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: 'Erreur lors de la recherche des premiums',
-//       error: error.message
-//     });
-//   }
-// };
