@@ -4,7 +4,9 @@ const isAuthorized = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'Token manquant ou invalide.' });
+    return res
+      .status(401)
+      .json({ success: false, error: 'Token manquant ou invalide.' });
   }
 
   const token = authHeader.split(' ')[1];
@@ -12,13 +14,20 @@ const isAuthorized = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
-    if(req.user.id == req.params.id || req.user.isAdmin) {
+    if (req.user.id == req.params.id || req.user.isAdmin) {
       next();
     } else {
-      return res.status(403).json({ success: false, error: 'Vous devez être propriétaire du compte ou administrateur'})
+      return res
+        .status(403)
+        .json({
+          success: false,
+          error: 'Vous devez être propriétaire du compte ou administrateur',
+        });
     }
   } catch (err) {
-    return res.status(401).json({ success: false, error: 'Token invalide ou expiré.' });
+    return res
+      .status(401)
+      .json({ success: false, error: 'Token invalide ou expiré.' });
   }
 };
 

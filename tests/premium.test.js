@@ -1,11 +1,11 @@
 const httpMocks = require('node-mocks-http');
-const { 
+const {
   getAllPremiums,
   getPremiumById,
   createPremium,
   updatePremium,
   patchPremium,
-  deletePremium
+  deletePremium,
 } = require('../controllers/premium.controller');
 
 const Premium = require('../models/premium');
@@ -96,7 +96,10 @@ describe('Premium Controller', () => {
       const updated = { _id: 'id1', title: 'Updated' };
       Premium.findByIdAndUpdate.mockResolvedValue(updated);
 
-      const req = httpMocks.createRequest({ params: { id: 'id1' }, body: { title: 'Updated' } });
+      const req = httpMocks.createRequest({
+        params: { id: 'id1' },
+        body: { title: 'Updated' },
+      });
       const res = httpMocks.createResponse();
 
       await updatePremium(req, res);
@@ -108,7 +111,10 @@ describe('Premium Controller', () => {
     it('should return 404 if premium not found', async () => {
       Premium.findByIdAndUpdate.mockResolvedValue(null);
 
-      const req = httpMocks.createRequest({ params: { id: 'notfound' }, body: {} });
+      const req = httpMocks.createRequest({
+        params: { id: 'notfound' },
+        body: {},
+      });
       const res = httpMocks.createResponse();
 
       await updatePremium(req, res);
@@ -119,7 +125,10 @@ describe('Premium Controller', () => {
     it('should return 400 if update fails', async () => {
       Premium.findByIdAndUpdate.mockRejectedValue(new Error('Erreur update'));
 
-      const req = httpMocks.createRequest({ params: { id: 'error' }, body: {} });
+      const req = httpMocks.createRequest({
+        params: { id: 'error' },
+        body: {},
+      });
       const res = httpMocks.createResponse();
 
       await updatePremium(req, res);
@@ -134,7 +143,10 @@ describe('Premium Controller', () => {
       const patched = { _id: 'id2', title: 'Partially Updated' };
       Premium.findByIdAndUpdate.mockResolvedValue(patched);
 
-      const req = httpMocks.createRequest({ params: { id: 'id2' }, body: { title: 'Partially Updated' } });
+      const req = httpMocks.createRequest({
+        params: { id: 'id2' },
+        body: { title: 'Partially Updated' },
+      });
       const res = httpMocks.createResponse();
 
       await patchPremium(req, res);

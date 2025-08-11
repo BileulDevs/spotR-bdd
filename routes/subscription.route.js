@@ -214,7 +214,10 @@ router.get('/user/:userId', subscriptionController.getSubscriptionsByUser);
  *       200:
  *         description: Liste des abonnements actifs
  */
-router.get('/user/:userId/active', subscriptionController.getActiveSubscriptionsByUser);
+router.get(
+  '/user/:userId/active',
+  subscriptionController.getActiveSubscriptionsByUser
+);
 
 /**
  * @swagger

@@ -2,9 +2,11 @@ const jwt = require('jsonwebtoken');
 
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'Token manquant ou invalide.' });
+    return res
+      .status(401)
+      .json({ success: false, error: 'Token manquant ou invalide.' });
   }
 
   const token = authHeader.split(' ')[1];
@@ -14,7 +16,9 @@ const authenticate = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ success: false, error: 'Token invalide ou expiré.' });
+    return res
+      .status(401)
+      .json({ success: false, error: 'Token invalide ou expiré.' });
   }
 };
 

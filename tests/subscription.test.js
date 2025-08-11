@@ -15,7 +15,7 @@ const {
   renewSubscription,
   deleteSubscription,
   searchSubscriptions,
-  getSubscriptionStats
+  getSubscriptionStats,
 } = require('../controllers/subscription.controller');
 
 jest.mock('../models/subscription');
@@ -35,8 +35,8 @@ describe('Subscription Controller', () => {
       const subscriptions = [{ _id: '1' }, { _id: '2' }];
       Subscription.find.mockReturnValue({
         populate: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue(subscriptions)
-        })
+          populate: jest.fn().mockResolvedValue(subscriptions),
+        }),
       });
 
       await getAllSubscriptions(req, res);
@@ -50,7 +50,7 @@ describe('Subscription Controller', () => {
       const res = httpMocks.createResponse();
 
       Subscription.find.mockReturnValue({
-        populate: jest.fn().mockRejectedValue(new Error('fail'))
+        populate: jest.fn().mockRejectedValue(new Error('fail')),
       });
 
       await getAllSubscriptions(req, res);
@@ -68,8 +68,8 @@ describe('Subscription Controller', () => {
       const subscription = { _id: '123' };
       Subscription.findById.mockReturnValue({
         populate: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue(subscription)
-        })
+          populate: jest.fn().mockResolvedValue(subscription),
+        }),
       });
 
       await getSubscriptionById(req, res);
@@ -84,8 +84,8 @@ describe('Subscription Controller', () => {
 
       Subscription.findById.mockReturnValue({
         populate: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue(null)
-        })
+          populate: jest.fn().mockResolvedValue(null),
+        }),
       });
 
       await getSubscriptionById(req, res);
@@ -99,7 +99,7 @@ describe('Subscription Controller', () => {
   describe('createSubscription', () => {
     it('should create a subscription', async () => {
       const req = httpMocks.createRequest({
-        body: { userId: 'u1', premiumId: 'p1', duration: 30 }
+        body: { userId: 'u1', premiumId: 'p1', duration: 30 },
       });
       const res = httpMocks.createResponse();
 
@@ -112,23 +112,27 @@ describe('Subscription Controller', () => {
         premium: premium,
         amount: 10,
         startDate: new Date(),
-        endDate: new Date()
+        endDate: new Date(),
       };
-      Subscription.prototype.save = jest.fn().mockResolvedValue(savedSubscription);
+      Subscription.prototype.save = jest
+        .fn()
+        .mockResolvedValue(savedSubscription);
 
       Premium.findByIdAndUpdate.mockResolvedValue(true);
 
       Subscription.findById.mockReturnValue({
         populate: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue(savedSubscription)
-        })
+          populate: jest.fn().mockResolvedValue(savedSubscription),
+        }),
       });
 
       await createSubscription(req, res);
 
       expect(res.statusCode).toBe(201);
       expect(res._getJSONData()).toMatchObject({ _id: 'sub1', amount: 10 });
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Subscription created'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Subscription created')
+      );
     });
 
     it('should return 404 if premium not found', async () => {
@@ -149,21 +153,23 @@ describe('Subscription Controller', () => {
     it('should update a subscription', async () => {
       const req = httpMocks.createRequest({
         params: { id: 'sub1' },
-        body: { duration: 60 }
+        body: { duration: 60 },
       });
       const res = httpMocks.createResponse();
 
       Subscription.findByIdAndUpdate.mockReturnValue({
         populate: jest.fn().mockReturnValue({
-          populate: jest.fn().mockResolvedValue({ _id: 'sub1', duration: 60 })
-        })
+          populate: jest.fn().mockResolvedValue({ _id: 'sub1', duration: 60 }),
+        }),
       });
 
       await updateSubscription(req, res);
 
       expect(res.statusCode).toBe(200);
       expect(res._getJSONData().duration).toBe(60);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Subscription updated'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Subscription updated')
+      );
     });
   });
 
@@ -175,14 +181,16 @@ describe('Subscription Controller', () => {
       Subscription.findById.mockResolvedValue({
         _id: 'sub1',
         canceled: false,
-        save: jest.fn().mockResolvedValue(true)
+        save: jest.fn().mockResolvedValue(true),
       });
 
       await cancelSubscription(req, res);
 
       expect(res.statusCode).toBe(200);
       expect(res._getJSONData().message).toMatch(/Annulation/i);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Subscription cancelled'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Subscription cancelled')
+      );
     });
 
     it('should return 404 if subscription not found', async () => {
@@ -195,10 +203,11 @@ describe('Subscription Controller', () => {
 
       expect(res.statusCode).toBe(404);
       expect(res._getJSONData().success).toBe(false);
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Subscription not found'));
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Subscription not found')
+      );
     });
   });
 
   // Ajoute des tests similaires pour patchSubscription, renewSubscription, deleteSubscription, searchSubscriptions, getSubscriptionStats etc.
-
 });

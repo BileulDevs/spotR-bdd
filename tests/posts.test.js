@@ -11,7 +11,7 @@ describe('Post Controller', () => {
     it('should create and return a post', async () => {
       const req = httpMocks.createRequest({
         body: { title: 'Test Post' },
-        user: { id: 'user123' }
+        user: { id: 'user123' },
       });
       const res = httpMocks.createResponse();
 
@@ -31,7 +31,7 @@ describe('Post Controller', () => {
     it('should return 400 on save error', async () => {
       const req = httpMocks.createRequest({
         body: { title: 'Bad Post' },
-        user: { id: 'user123' }
+        user: { id: 'user123' },
       });
       const res = httpMocks.createResponse();
 
@@ -68,7 +68,9 @@ describe('Post Controller', () => {
   describe('getPostById', () => {
     it('should return a post by ID', async () => {
       const post = { title: 'Sample Post' };
-      Post.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(post) });
+      Post.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(post),
+      });
 
       const req = httpMocks.createRequest({ params: { id: 'abc123' } });
       const res = httpMocks.createResponse();
@@ -79,7 +81,9 @@ describe('Post Controller', () => {
     });
 
     it('should return 404 if not found', async () => {
-      Post.findById.mockReturnValue({ populate: jest.fn().mockResolvedValue(null) });
+      Post.findById.mockReturnValue({
+        populate: jest.fn().mockResolvedValue(null),
+      });
 
       const req = httpMocks.createRequest({ params: { id: 'invalid' } });
       const res = httpMocks.createResponse();
@@ -96,7 +100,7 @@ describe('Post Controller', () => {
 
       const req = httpMocks.createRequest({
         params: { id: 'post123' },
-        body: { title: 'Updated Post' }
+        body: { title: 'Updated Post' },
       });
       const res = httpMocks.createResponse();
 
@@ -107,7 +111,10 @@ describe('Post Controller', () => {
     it('should return 404 if not found', async () => {
       Post.findByIdAndUpdate.mockResolvedValue(null);
 
-      const req = httpMocks.createRequest({ params: { id: 'notfound' }, body: {} });
+      const req = httpMocks.createRequest({
+        params: { id: 'notfound' },
+        body: {},
+      });
       const res = httpMocks.createResponse();
 
       await controller.updatePost(req, res);
@@ -123,7 +130,9 @@ describe('Post Controller', () => {
       const res = httpMocks.createResponse();
 
       await controller.deletePost(req, res);
-      expect(res._getJSONData()).toEqual({ message: 'Post deleted successfully' });
+      expect(res._getJSONData()).toEqual({
+        message: 'Post deleted successfully',
+      });
     });
 
     it('should return 404 if post not found', async () => {
@@ -150,7 +159,7 @@ describe('Post Controller', () => {
 
       const req = httpMocks.createRequest({
         params: { id: 'post1' },
-        body: { hasLiked: 'user1' }
+        body: { hasLiked: 'user1' },
       });
       const res = httpMocks.createResponse();
 
@@ -172,7 +181,7 @@ describe('Post Controller', () => {
 
       const req = httpMocks.createRequest({
         params: { id: 'post1' },
-        body: { hasLiked: 'user1' }
+        body: { hasLiked: 'user1' },
       });
       const res = httpMocks.createResponse();
 
@@ -185,7 +194,7 @@ describe('Post Controller', () => {
     it('should return 400 if user ID is missing', async () => {
       const req = httpMocks.createRequest({
         params: { id: 'post1' },
-        body: {}
+        body: {},
       });
       const res = httpMocks.createResponse();
 

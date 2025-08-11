@@ -1,4 +1,4 @@
-const logger = require("../config/logger");
+const logger = require('../config/logger');
 const Premium = require('../models/premium');
 
 // GET - Récupérer tous les premiums
@@ -10,7 +10,7 @@ exports.getAllPremiums = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des premiums',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -19,20 +19,20 @@ exports.getAllPremiums = async (req, res) => {
 exports.getPremiumById = async (req, res) => {
   try {
     const premium = await Premium.findById(req.params.id);
-    
+
     if (!premium) {
       return res.status(404).json({
         success: false,
-        message: 'Premium non trouvé'
+        message: 'Premium non trouvé',
       });
     }
-    
+
     res.status(200).json(premium);
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du premium',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -42,45 +42,40 @@ exports.createPremium = async (req, res) => {
   try {
     const premium = new Premium(req.body);
     const savedPremium = await premium.save();
-    
+
     res.status(201).json(savedPremium);
   } catch (error) {
     res.status(400).json({
       success: false,
       message: 'Erreur lors de la création du premium',
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 // PUT - Mettre à jour un premium par ID
 exports.updatePremium = async (req, res) => {
-    try {
-        const premium = await Premium.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { 
-                new: true,
-                runValidators: true 
-            }
-        );
-        
-        if (!premium) {
-            return res.status(404).json({
-                success: false,
-                message: 'Premium non trouvé'
-            });
-        }
-        
-        res.status(200).json(premium);
+  try {
+    const premium = await Premium.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: 'Erreur lors de la mise à jour du premium',
-            error: error.message
-        });
+    if (!premium) {
+      return res.status(404).json({
+        success: false,
+        message: 'Premium non trouvé',
+      });
     }
+
+    res.status(200).json(premium);
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour du premium',
+      error: error.message,
+    });
+  }
 };
 
 // PATCH - Mise à jour partielle d'un premium
@@ -89,26 +84,25 @@ exports.patchPremium = async (req, res) => {
     const premium = await Premium.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
-      { 
+      {
         new: true,
-        runValidators: true 
+        runValidators: true,
       }
     );
-    
+
     if (!premium) {
       return res.status(404).json({
         success: false,
-        message: 'Premium non trouvé'
+        message: 'Premium non trouvé',
       });
     }
-    
-    res.status(200).json(premium);
 
+    res.status(200).json(premium);
   } catch (error) {
     res.status(400).json({
       success: false,
       message: 'Erreur lors de la mise à jour partielle du premium',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -117,21 +111,20 @@ exports.patchPremium = async (req, res) => {
 exports.deletePremium = async (req, res) => {
   try {
     const premium = await Premium.findByIdAndDelete(req.params.id);
-    
+
     if (!premium) {
       return res.status(404).json({
         success: false,
-        message: 'Premium non trouvé'
+        message: 'Premium non trouvé',
       });
     }
-    
-    res.status(200).json(premium);
 
+    res.status(200).json(premium);
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression du premium',
-      error: error.message
+      error: error.message,
     });
   }
 };

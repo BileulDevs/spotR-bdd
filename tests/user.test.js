@@ -8,7 +8,7 @@ const {
   updateUser,
   deleteUser,
   verifyEmail,
-  getUserPosts
+  getUserPosts,
 } = require('../controllers/user.controller');
 
 jest.mock('../models/user');
@@ -22,7 +22,12 @@ describe('User Controller', () => {
   describe('createUser', () => {
     it('should create a user and return it', async () => {
       const req = httpMocks.createRequest({
-        body: { username: 'testuser', email: 'test@test.com', password: 'password', provider: 'local' }
+        body: {
+          username: 'testuser',
+          email: 'test@test.com',
+          password: 'password',
+          provider: 'local',
+        },
       });
       const res = httpMocks.createResponse();
 
@@ -34,7 +39,7 @@ describe('User Controller', () => {
         _id: '123',
         username: 'testuser',
         email: 'test@test.com',
-        provider: 'local'
+        provider: 'local',
       });
 
       // Mock User.findById().populate() to return populated user
@@ -43,10 +48,10 @@ describe('User Controller', () => {
         username: 'testuser',
         email: 'test@test.com',
         provider: 'local',
-        subscription: []
+        subscription: [],
       };
       User.findById.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(mockPopulatedUser)
+        populate: jest.fn().mockResolvedValue(mockPopulatedUser),
       });
 
       await createUser(req, res);
@@ -54,12 +59,19 @@ describe('User Controller', () => {
       expect(res.statusCode).toBe(201);
       const data = res._getJSONData();
       expect(data).toMatchObject(mockPopulatedUser);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('User created'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('User created')
+      );
     });
 
     it('should return 400 if username already exists', async () => {
       const req = httpMocks.createRequest({
-        body: { username: 'testuser', email: 'test@test.com', password: 'password', provider: 'local' }
+        body: {
+          username: 'testuser',
+          email: 'test@test.com',
+          password: 'password',
+          provider: 'local',
+        },
       });
       const res = httpMocks.createResponse();
 
@@ -79,10 +91,10 @@ describe('User Controller', () => {
 
       const users = [
         { _id: '1', username: 'u1', subscription: [] },
-        { _id: '2', username: 'u2', subscription: [] }
+        { _id: '2', username: 'u2', subscription: [] },
       ];
       User.find.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(users)
+        populate: jest.fn().mockResolvedValue(users),
       });
 
       await getUsers(req, res);
@@ -90,7 +102,9 @@ describe('User Controller', () => {
       expect(res.statusCode).toBe(200);
       const data = res._getJSONData();
       expect(data.length).toBe(2);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Fetched'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Fetched')
+      );
     });
   });
 
@@ -101,14 +115,16 @@ describe('User Controller', () => {
 
       const user = { _id: '123', username: 'testuser', subscription: [] };
       User.findById.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(user)
+        populate: jest.fn().mockResolvedValue(user),
       });
 
       await getUserById(req, res);
 
       expect(res.statusCode).toBe(200);
       expect(res._getJSONData()).toMatchObject(user);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Fetched user'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Fetched user')
+      );
     });
 
     it('should return 404 if user not found', async () => {
@@ -116,14 +132,16 @@ describe('User Controller', () => {
       const res = httpMocks.createResponse();
 
       User.findById.mockReturnValue({
-        populate: jest.fn().mockResolvedValue(null)
+        populate: jest.fn().mockResolvedValue(null),
       });
 
       await getUserById(req, res);
 
       expect(res.statusCode).toBe(404);
       expect(res._getJSONData().message).toBe('User not found');
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('User not found'));
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('User not found')
+      );
     });
   });
 
@@ -136,8 +154,8 @@ describe('User Controller', () => {
           email: 'newemail@test.com',
           currentPassword: 'oldpass',
           password: 'newpass',
-          confirmPassword: 'newpass'
-        }
+          confirmPassword: 'newpass',
+        },
       });
       const res = httpMocks.createResponse();
 
@@ -146,7 +164,7 @@ describe('User Controller', () => {
         _id: '123',
         username: 'olduser',
         email: 'old@test.com',
-        password: 'hashedOldPass'
+        password: 'hashedOldPass',
       };
       User.findById.mockResolvedValue(existingUser);
 
@@ -168,8 +186,8 @@ describe('User Controller', () => {
           username: 'newuser',
           email: 'newemail@test.com',
           password: 'hashedNewPass',
-          subscription: []
-        })
+          subscription: [],
+        }),
       });
 
       // Execute updateUser
@@ -179,11 +197,16 @@ describe('User Controller', () => {
       const data = res._getJSONData();
       expect(data.username).toBe('newuser');
       expect(data.password).toBeUndefined();
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Updated user'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Updated user')
+      );
     });
 
     it('should return 404 if user not found', async () => {
-      const req = httpMocks.createRequest({ params: { id: 'notfound' }, body: { username: 'test' } });
+      const req = httpMocks.createRequest({
+        params: { id: 'notfound' },
+        body: { username: 'test' },
+      });
       const res = httpMocks.createResponse();
 
       User.findById.mockResolvedValue(null);
@@ -192,7 +215,9 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(404);
       expect(res._getJSONData().message).toBe('Utilisateur non trouvé');
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('User not found for update'));
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('User not found for update')
+      );
     });
   });
 
@@ -207,7 +232,9 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res._getJSONData().message).toMatch(/deleted successfully/i);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Deleted user'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Deleted user')
+      );
     });
 
     it('should return 404 if user not found', async () => {
@@ -220,7 +247,9 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(404);
       expect(res._getJSONData().message).toBe('User not found');
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('User not found for deletion'));
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('User not found for deletion')
+      );
     });
   });
 
@@ -235,7 +264,9 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res._getJSONData().message).toMatch(/Email vérifié/i);
-      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Email vérifié'));
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Email vérifié')
+      );
     });
 
     it('should return 500 on error', async () => {
@@ -248,7 +279,9 @@ describe('User Controller', () => {
 
       expect(res.statusCode).toBe(500);
       expect(res._getJSONData().message).toMatch(/Error/i);
-      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Erreur'));
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Erreur')
+      );
     });
   });
 });

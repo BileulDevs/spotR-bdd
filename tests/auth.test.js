@@ -14,7 +14,7 @@ describe('checkUserForLogin', () => {
   it('should return 404 if user not found', async () => {
     const req = httpMocks.createRequest({
       method: 'POST',
-      body: { email: 'nonexistent@test.com' }
+      body: { email: 'nonexistent@test.com' },
     });
     const res = httpMocks.createResponse();
 
@@ -41,7 +41,7 @@ describe('checkUserForLogin', () => {
 
     const req = httpMocks.createRequest({
       method: 'POST',
-      body: { email: 'user@test.com' }
+      body: { email: 'user@test.com' },
     });
     const res = httpMocks.createResponse();
 
@@ -59,7 +59,7 @@ describe('checkUserForLogin', () => {
   it('should return 500 if there is an error', async () => {
     const req = httpMocks.createRequest({
       method: 'POST',
-      body: { email: 'error@test.com' }
+      body: { email: 'error@test.com' },
     });
     const res = httpMocks.createResponse();
 

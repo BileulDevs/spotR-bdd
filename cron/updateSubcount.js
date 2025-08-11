@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const logger = require("../config/logger");
+const logger = require('../config/logger');
 const Premium = require('../models/premium');
 const Subscription = require('../models/subscription');
 
@@ -13,7 +13,7 @@ cron.schedule('0 * * * *', async () => {
       const count = await Subscription.countDocuments({
         premium: premium._id,
         status: 'active',
-        endDate: { $gt: new Date() }
+        endDate: { $gt: new Date() },
       });
 
       const result = await Premium.updateOne(
