@@ -7,7 +7,7 @@ const User = require('../models/user');
 exports.getAllSubscriptions = async (req, res) => {
   try {
     const subscriptions = await Subscription.find()
-      .populate('userId', 'name email')
+      .populate('userId')
       .populate('premium', 'title tarif description');
     res.status(200).json(subscriptions);
   } catch (error) {
@@ -23,7 +23,7 @@ exports.getAllSubscriptions = async (req, res) => {
 exports.getSubscriptionById = async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id)
-      .populate('userId', 'name email')
+      .populate('userId')
       .populate('premium', 'title tarif description');
 
     if (!subscription) {
